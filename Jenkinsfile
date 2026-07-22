@@ -2,9 +2,8 @@ pipeline {
     agent any
     
     environment {
-        // نام کاربری داکرهاب شما اعمال شد
         DOCKER_IMAGE = 'jasonwolf0098/cicd-presentation'
-        DOCKER_CREDENTIALS_ID = 'dockerhub-credentials' // آیدی تنظیم شده در جنکینز برای داکرهاب
+        DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
         TAG = "${env.BUILD_NUMBER}"
     }
 
@@ -37,9 +36,11 @@ pipeline {
                     // آپدیت کردن تگ ایمیج در فایل deployment
                     sh "sed -i 's|image: .*|image: ${DOCKER_IMAGE}:${TAG}|g' deployment.yaml"
                     
-                    // اعمال فایل‌ها روی کلاستر
-                    sh 'KUBECONFIG=/var/jenkins_home/kubeconfig kubectl apply -f deployment.yaml'
-                    sh 'KUBECONFIG=/var/jenkins_home/kubeconfig kubectl apply -f service.yaml'
+                    // استفاده از فایل کانفیگ امن شده در جنکینز برای اتصال
+                    withCredentials([file(credentialsId: 'k8s-kubeconfig', variable: 'KUBECONFIG')]) {
+                        sh 'kubectl --kubeconfig=$KUBECONFIG apply -f deployment.yaml'
+                        sh 'kubectl --kubeconfig=$KUBECONFIG apply -f service.yaml'
+                    }
                 }
             }
         }
